@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#8265b4">
+  <meta name="description" content="Astronic Novels — editor de cenas para criação de visual novels.">
+  <title>Astronic Novels</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="astronic-app" class="an-app">
+    <header class="an-header">
+      <a class="an-brand" href="#" aria-label="Astronic Novels — início">
+        <span class="an-logo" aria-hidden="true">✦</span>
+        <span>Astronic <em>Novels</em></span>
+      </a>
+      <div class="an-header-actions">
+        <span class="an-save-state" id="save-state" aria-live="polite">Nenhum projeto aberto</span>
+        <button class="an-btn" type="button" data-action="new-project">＋ Novo projeto</button>
+        <button class="an-btn" type="button" data-action="saved-projects">Projetos salvos</button>
+        <button class="an-btn an-btn-primary" type="button" data-action="save-project">Salvar projeto</button>
+      </div>
+    </header>
+
+    <main class="an-main">
+      <section class="an-intro">
+        <div>
+          <div class="an-kicker">Seu espaço de criação</div>
+          <h1>Editor de cenas</h1>
+          <p>Distribua personagens em três áreas e monte suas histórias.</p>
+        </div>
+        <div class="an-project-name" id="project-name">Nenhum projeto aberto</div>
+      </section>
+
+      <div class="an-workspace">
+        <section class="an-panel an-editor-panel">
+          <div class="an-panel-head">
+            <strong>Pré-visualização</strong>
+            <span class="an-muted">Proporção 16:9</span>
+          </div>
+          <div class="an-stage-wrap">
+            <div class="an-stage" id="stage">
+              <div class="an-stage-placeholder" id="stage-placeholder">
+                <span class="an-placeholder-symbol">✧</span>
+                <strong>Seu cenário começa aqui</strong>
+                <small>Envie uma imagem de fundo para começar.</small>
+              </div>
+              <img class="an-background" id="stage-background" alt="Cenário da cena" hidden>
+              <div class="an-sprites" id="stage-sprites" aria-label="Personagens da cena">
+                <div class="an-sprite-area"></div>
+                <div class="an-sprite-area"></div>
+                <div class="an-sprite-area"></div>
+              </div>
+              <div class="an-dialogue" id="dialogue-preview">
+                <div class="an-speaker" id="speaker-preview">Nome do personagem</div>
+                <div class="an-dialogue-text" id="dialogue-preview-text">Seu diálogo aparecerá aqui...</div>
+                <span class="an-next-mark" aria-hidden="true">⌄</span>
+              </div>
+              <section class="an-reader" id="reader" aria-label="Modo de leitura" hidden>
+                <div class="an-reader-placeholder" id="reader-placeholder">Sem cenário nesta cena</div>
+                <img class="an-reader-background" id="reader-background" alt="">
+                <div class="an-reader-sprites" id="reader-sprites"></div>
+                <div class="an-reader-dialogue" id="reader-dialogue" role="button" tabindex="0" aria-label="Avançar para a próxima cena">
+                  <div class="an-reader-speaker" id="reader-speaker">Nome do personagem</div>
+                  <div class="an-reader-text" id="reader-text">Diálogo da cena</div>
+                  <span class="an-next-mark" aria-hidden="true">⌄</span>
+                </div>
+                <div class="an-reader-toolbar">
+                  <button type="button" data-action="reader-previous">← Anterior</button>
+                  <button type="button" data-action="reader-next">Próxima →</button>
+                  <button type="button" class="an-reader-exit" data-action="reader-exit">Sair ×</button>
+                </div>
+                <div class="an-reader-progress"><i id="reader-progress"></i></div>
+                <div class="an-reader-hint">Clique na caixa de diálogo para continuar</div>
+              </section>
+            </div>
+          </div>
+          <div class="an-stage-footer">
+            <div class="an-button-row">
+              <button class="an-btn" type="button" data-action="previous-scene">← Anterior</button>
+              <span class="an-muted" id="scene-counter">Cena 1 / 1</span>
+              <button class="an-btn" type="button" data-action="next-scene">Próxima →</button>
+            </div>
+            <div class="an-button-row">
+              <button class="an-btn" type="button" data-action="download-image">Baixar imagem ↓</button>
+              <button class="an-btn an-btn-primary" type="button" data-action="add-scene">＋ Nova cena</button>
+            </div>
+          </div>
+          <div class="an-scenes-header">
+            <strong>Roteiro do projeto</strong>
+            <span class="an-muted">Selecione uma cena para editar</span>
+          </div>
+          <div class="an-scene-list" id="scene-list"></div>
+          <div class="an-test-row">
+            <button class="an-btn an-btn-soft an-full" type="button" data-action="open-reader">▶ Testar visual novel</button>
+          </div>
+        </section>
+
+        <aside class="an-sidebar">
+          <section class="an-panel">
+            <div class="an-section">
+              <div class="an-section-title"><strong>01 · Cenário</strong><span>BACKGROUND</span></div>
+              <div class="an-field">
+                <label for="background-upload">Imagem de fundo</label>
+                <div class="an-upload-row">
+                  <label class="an-file-label" for="background-upload">＋ Enviar imagem</label>
+                  <input id="background-upload" type="file" accept="image/*" hidden>
+                  <span class="an-file-name" id="background-file-name">Nenhuma imagem</span>
+                </div>
+              </div>
+              <button class="an-btn an-btn-remove an-full" type="button" data-action="remove-background">Remover cenário</button>
+            </div>
+          </section>
+
+          <section class="an-panel">
+            <div class="an-section">
+              <div class="an-section-title"><strong>02 · Personagens</strong><span>SPRITES</span></div>
+              <div class="an-global-controls">
+                <strong>⚙ Ajustes globais</strong>
+                <div class="an-range-row">
+                  <div class="an-range-label"><span>Zoom de todos os personagens</span><b id="zoom-value">100%</b></div>
+                  <input id="global-zoom" type="range" min="45" max="190" step="5" value="100">
+                </div>
+                <div class="an-range-row">
+                  <div class="an-range-label"><span>Altura de todos os personagens</span><b id="height-value">0%</b></div>
+                  <input id="global-height" type="range" min="-35" max="35" step="1" value="0">
+                </div>
+                <p class="an-hint">Os ajustes são compartilhados por todos os personagens e todas as cenas.</p>
+              </div>
+              <div class="an-groups" id="character-groups"></div>
+              <p class="an-hint">Cada área aceita várias imagens. Os personagens mantêm o mesmo tamanho-base, mesmo quando estão sozinhos ou acompanhados.</p>
+            </div>
+          </section>
+
+          <section class="an-panel">
+            <div class="an-section">
+              <div class="an-section-title"><strong>03 · Caixa de diálogo</strong><span>TEXT BOX</span></div>
+              <div class="an-field">
+                <label for="speaker-input">Nome exibido</label>
+                <input id="speaker-input" type="text" placeholder="Ex.: Haruto Nishimura">
+              </div>
+              <div class="an-field">
+                <label for="dialogue-input">Texto do diálogo</label>
+                <textarea id="dialogue-input" placeholder="Digite o diálogo desta cena..."></textarea>
+              </div>
+              <div class="an-two-columns">
+                <div class="an-field">
+                  <label for="font-select">Fonte</label>
+                  <select id="font-select">
+                    <option value="Georgia,serif">Clássica</option>
+                    <option value="Arial,sans-serif">Moderna</option>
+                    <option value="Trebuchet MS,sans-serif">Suave</option>
+                    <option value="monospace">Monoespaçada</option>
+                  </select>
+                </div>
+                <div class="an-field">
+                  <label for="font-size">Tamanho</label>
+                  <input id="font-size" type="number" min="10" max="30" value="19">
+                </div>
+              </div>
+              <div class="an-two-columns">
+                <div class="an-field">
+                  <label for="text-color">Cor do texto</label>
+                  <input class="an-color-input" id="text-color" type="color" value="#332b42">
+                </div>
+                <div class="an-field">
+                  <label for="name-color">Cor do nome</label>
+                  <input class="an-color-input" id="name-color" type="color" value="#7658a4">
+                </div>
+              </div>
+              <div class="an-field">
+                <div class="an-range-label"><label for="box-opacity">Transparência da caixa</label><span id="opacity-value">94%</span></div>
+                <input id="box-opacity" type="range" min="45" max="100" value="94">
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="an-footer">Criador por <strong>Diana</strong> · Astronic Novels</footer>
+
+    <div class="an-modal" id="new-project-modal" role="dialog" aria-modal="true" aria-labelledby="new-project-title" hidden>
+      <form class="an-modal-card" id="new-project-form">
+        <div class="an-kicker">Novo projeto</div>
+        <h2 id="new-project-title">Criar uma visual novel</h2>
+        <p>Dê um nome para o projeto. Uma nova história será criada sem alterar os outros projetos salvos.</p>
+        <div class="an-field">
+          <label for="new-project-name">Nome do projeto</label>
+          <input id="new-project-name" type="text" placeholder="Ex.: Astrae — AFTERCLASS" required maxlength="90">
+        </div>
+        <div class="an-modal-actions">
+          <button class="an-btn" type="button" data-action="cancel-new-project">Cancelar</button>
+          <button class="an-btn an-btn-primary" type="submit">Criar projeto</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="an-modal" id="saved-projects-modal" role="dialog" aria-modal="true" aria-labelledby="saved-projects-title" hidden>
+      <section class="an-modal-card">
+        <div class="an-kicker">Biblioteca local</div>
+        <h2 id="saved-projects-title">Projetos salvos</h2>
+        <p>Os projetos ficam guardados neste navegador e neste dispositivo.</p>
+        <div class="an-saved-list" id="saved-projects-list"></div>
+        <div class="an-modal-actions"><button class="an-btn" type="button" data-action="close-saved-projects">Fechar</button></div>
+      </section>
+    </div>
+
+    <div class="an-toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+  <script src="js/app.js" defer></script>
+</body>
+</html>
