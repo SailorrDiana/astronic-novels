@@ -91,6 +91,10 @@
             <strong>Roteiro do projeto</strong>
             <span class="an-muted">Selecione uma cena para editar</span>
           </div>
+          <div class="an-scene-name-row">
+            <label for="scene-name-input">Nome da cena</label>
+            <input id="scene-name-input" type="text" maxlength="48" placeholder="Ex.: Primeiro encontro">
+          </div>
           <div class="an-scene-list" id="scene-list"></div>
           <div class="an-test-row">
             <button class="an-btn an-btn-soft an-full" type="button" data-action="open-reader">▶ Testar visual novel</button>
@@ -191,7 +195,8 @@
           <input id="new-project-name" type="text" placeholder="Ex.: Astrae — AFTERCLASS" required maxlength="90">
         </div>
         <div class="an-modal-actions">
-          <button class="an-btn" type="button" data-action="cancel-new-project">Cancelar</button>
+          <button class="an-btn" id="cancel-new-project" type="button" data-action="cancel-new-project">Cancelar</button>
+          <button class="an-btn" id="open-saved-from-start" type="button" data-action="open-saved-from-start" hidden>Abrir projeto salvo</button>
           <button class="an-btn an-btn-primary" type="submit">Criar projeto</button>
         </div>
       </form>

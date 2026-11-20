@@ -10,8 +10,10 @@
   const DB_NAME = 'AstronicNovelsLocal';
   const DB_VERSION = 1;
   const STORE_NAME = 'projects';
+  const LAST_CREATED_PROJECT_KEY = 'AstronicNovelsLastCreatedProjectId';
 
   const createEmptyScene = () => ({
+    name: '',
     bg: null,
     bgName: '',
     groups: [[], [], []],
@@ -29,6 +31,7 @@
   let scenes = [createEmptyScene()];
   let currentSceneIndex = 0;
   let activeProjectId = null;
+  let activeProjectCreatedAt = null;
   let projectName = 'Nenhum projeto aberto';
   let globalZoom = 100;
   let globalHeight = 0;
@@ -36,6 +39,7 @@
   let databasePromise = null;
   let isDirty = false;
   let toastTimer = null;
+  let requiresProjectCreation = false;
 
   const currentScene = () => scenes[currentSceneIndex];
 
@@ -62,6 +66,25 @@
     $('project-name').title = projectName;
   }
 
+  // Remember the most recently created project so a page refresh returns to it.
+  // This is separate from the project data, which remains stored in IndexedDB.
+  function rememberMostRecentlyCreatedProject(id) {
+    try {
+      if (id) window.localStorage.setItem(LAST_CREATED_PROJECT_KEY, id);
+      else window.localStorage.removeItem(LAST_CREATED_PROJECT_KEY);
+    } catch {
+      // The editor can still work when browser storage preferences block localStorage.
+    }
+  }
+
+  function getMostRecentlyCreatedProjectId() {
+    try {
+      return window.localStorage.getItem(LAST_CREATED_PROJECT_KEY);
+    } catch {
+      return null;
+    }
+  }
+
   function readImageFile(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -73,6 +96,7 @@
 
   function captureCurrentSceneFields() {
     const scene = currentScene();
+    scene.name = $('scene-name-input').value;
     scene.speaker = $('speaker-input').value;
     scene.text = $('dialogue-input').value;
     scene.font = $('font-select').value;
@@ -201,10 +225,9 @@
       button.type = 'button';
       button.className = `an-scene-card${index === currentSceneIndex ? ' active' : ''}`;
       const title = document.createElement('b');
-      title.textContent = `Cena ${String(index + 1).padStart(2, '0')}`;
-      const summary = document.createElement('small');
-      summary.textContent = scene.text || 'Sem diálogo ainda';
-      button.append(title, summary);
+      title.textContent = scene.name.trim() || `Cena ${String(index + 1).padStart(2, '0')}`;
+      button.appendChild(title);
+      button.setAttribute('aria-label', `Editar ${title.textContent}`);
       button.addEventListener('click', () => {
         captureCurrentSceneFields();
         currentSceneIndex = index;
@@ -225,6 +248,7 @@
     renderPeople($('stage-sprites'), scene);
     renderCharacterGroups();
 
+    $('scene-name-input').value = scene.name || '';
     $('speaker-input').value = scene.speaker;
     $('dialogue-input').value = scene.text;
     $('font-select').value = scene.font;
@@ -251,6 +275,12 @@
   ['speaker-input', 'dialogue-input', 'font-select', 'font-size', 'text-color', 'name-color', 'box-opacity'].forEach((id) => {
     $(id).addEventListener('input', updateDialogueFromInputs);
     $(id).addEventListener('change', updateDialogueFromInputs);
+  });
+
+  $('scene-name-input').addEventListener('input', () => {
+    currentScene().name = $('scene-name-input').value;
+    renderSceneList();
+    markDirty();
   });
 
   $('global-zoom').addEventListener('input', (event) => {
@@ -341,6 +371,7 @@
     return {
       id: activeProjectId,
       name: projectName,
+      createdAt: activeProjectCreatedAt || Date.now(),
       updatedAt: Date.now(),
       globalZoom,
       globalHeight,
@@ -370,8 +401,18 @@
     }
   }
 
-  function openNewProjectModal() {
+  function setProjectWorkspaceLocked(locked) {
+    [document.querySelector('.an-header'), document.querySelector('.an-main'), document.querySelector('.an-footer')]
+      .filter(Boolean)
+      .forEach((element) => { element.inert = locked; });
+  }
+
+  function openNewProjectModal(required = false) {
+    requiresProjectCreation = required;
     $('new-project-modal').hidden = false;
+    $('cancel-new-project').hidden = required;
+    $('open-saved-from-start').hidden = !required;
+    if (required) setProjectWorkspaceLocked(true);
     $('new-project-name').value = '';
     $('new-project-name').focus();
   }
@@ -384,13 +425,19 @@
       return;
     }
     activeProjectId = makeId();
+    activeProjectCreatedAt = Date.now();
+    rememberMostRecentlyCreatedProject(activeProjectId);
     projectName = cleanName;
     scenes = [createEmptyScene()];
     currentSceneIndex = 0;
     globalZoom = 100;
     globalHeight = 0;
     isDirty = true;
+    requiresProjectCreation = false;
     $('new-project-modal').hidden = true;
+    $('cancel-new-project').hidden = false;
+    $('open-saved-from-start').hidden = true;
+    setProjectWorkspaceLocked(false);
     loadCurrentScene();
     await saveCurrentProject();
     toast(`Projeto “${projectName}” criado.`);
@@ -454,6 +501,7 @@
     if (!Array.isArray(inputScenes) || inputScenes.length === 0) return [createEmptyScene()];
     return inputScenes.map((scene) => {
       const normalized = { ...createEmptyScene(), ...scene };
+      normalized.name = typeof scene.name === 'string' ? scene.name : '';
       normalized.groups = Array.isArray(scene.groups) ? scene.groups.slice(0, 3) : [[], [], []];
       while (normalized.groups.length < 3) normalized.groups.push([]);
       normalized.groups = normalized.groups.map((group) => Array.isArray(group) ? group : []);
@@ -464,6 +512,14 @@
   function loadSavedProject(record) {
     if (isDirty && !window.confirm('Você tem alterações não salvas. Abrir outro projeto mesmo assim?')) return;
     activeProjectId = record.id;
+    activeProjectCreatedAt = Number.isFinite(record.createdAt)
+      ? record.createdAt
+      : (Number.isFinite(record.updatedAt) ? record.updatedAt : Date.now());
+    requiresProjectCreation = false;
+    $('new-project-modal').hidden = true;
+    $('cancel-new-project').hidden = false;
+    $('open-saved-from-start').hidden = true;
+    setProjectWorkspaceLocked(false);
     projectName = record.name || 'Projeto sem título';
     scenes = normalizeLoadedScenes(record.scenes);
     currentSceneIndex = 0;
@@ -649,8 +705,8 @@
     const action = button.dataset.action;
 
     if (action === 'new-project') openNewProjectModal();
-    if (action === 'cancel-new-project') $('new-project-modal').hidden = true;
-    if (action === 'saved-projects') await openSavedProjectsModal();
+    if (action === 'cancel-new-project' && !requiresProjectCreation) $('new-project-modal').hidden = true;
+    if (action === 'saved-projects' || action === 'open-saved-from-start') await openSavedProjectsModal();
     if (action === 'close-saved-projects') $('saved-projects-modal').hidden = true;
     if (action === 'save-project') await saveCurrentProject();
     if (action === 'remove-background') {
@@ -683,14 +739,48 @@
   });
 
   $('new-project-modal').addEventListener('click', (event) => {
-    if (event.target === $('new-project-modal')) $('new-project-modal').hidden = true;
+    if (event.target === $('new-project-modal') && !requiresProjectCreation) $('new-project-modal').hidden = true;
   });
   $('saved-projects-modal').addEventListener('click', (event) => {
     if (event.target === $('saved-projects-modal')) $('saved-projects-modal').hidden = true;
   });
 
-  // Start with a clean workspace. A named project is created through the header button.
-  setSaveState('Crie ou abra um projeto');
-  updateProjectNameDisplay();
-  loadCurrentScene();
+  // Restore the most recently created project after refresh. Only require project
+  // creation when the browser has no saved projects yet (first visit or empty library).
+  async function initializeProjectWorkspace() {
+    setProjectWorkspaceLocked(true);
+    setSaveState('Carregando projetos salvos...');
+    updateProjectNameDisplay();
+
+    try {
+      const records = await getSavedProjectRecords();
+      const rememberedId = getMostRecentlyCreatedProjectId();
+      const mostRecentlyCreatedProject = records.find((record) => record.id === rememberedId);
+      // Older versions did not store createdAt, so updatedAt is the best available fallback.
+      const newestExistingProject = records
+        .slice()
+        .sort((a, b) => (b.createdAt || b.updatedAt || 0) - (a.createdAt || a.updatedAt || 0))[0];
+      const projectToRestore = mostRecentlyCreatedProject || newestExistingProject;
+
+      if (projectToRestore) {
+        if (!rememberedId || !mostRecentlyCreatedProject) {
+          rememberMostRecentlyCreatedProject(projectToRestore.id);
+        }
+        loadSavedProject(projectToRestore);
+        return;
+      }
+
+      setSaveState('Crie um projeto para começar');
+      loadCurrentScene();
+      openNewProjectModal(true);
+    } catch (error) {
+      // Keep the first-visit flow available if IndexedDB cannot be read.
+      setSaveState('Crie um projeto para começar');
+      loadCurrentScene();
+      openNewProjectModal(true);
+      toast(error.message || 'Não foi possível carregar os projetos salvos.');
+    }
+  }
+
+  initializeProjectWorkspace();
 })();
